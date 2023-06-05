@@ -1,81 +1,78 @@
-import { Component } from 'react';
 import shortid from 'shortid';
 import { Notify } from 'notiflix/build/notiflix-notify-aio';
 import PropTypes from 'prop-types';
 import { PhoneBookForm, AddButton, Message } from './ContactForm.styled';
-import { Formik, Field, ErrorMessage } from 'formik';
 
-const initialValues = {
-  name: '',
-  number: '',
-};
+import { useForm } from 'react-hook-form';
 
-function validateName(value) {
-  let error;
-  if (!value) {
-    error = 'Required';
-  } else if (
-    !/^[a-zA-Za-яА-Я]+(([' -][a-zA-Za-яА-Я ])?[a-zA-Za-яА-Я]*)*$/i.test(value)
-  ) {
-    error = 'Name may contain only letters, apostrophe, dash and spaces.';
-  }
-  return error;
-}
+export const ContactForm = ({ contacts, onAddContact }) => {
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm();
 
-function validateNumber(value) {
-  let error;
-  if (!value) {
-    error = 'Required';
-  } else if (
-    !/\+?\d{1,4}?[-.\s]?\(?\d{1,3}?\)?[-.\s]?\d{1,4}[-.\s]?\d{1,4}[-.\s]?\d{1,9}/i.test(
-      value
-    )
-  ) {
-    error = 'Name may contain only letters, apostrophe, dash and spaces.';
-  }
-  return error;
-}
-
-export class ContactForm extends Component {
-  handleSubmit = (values, { resetForm }) => {
-    for (const contact of this.props.contacts) {
-      if (contact.name === values.name) {
+  const onSubmit = data => {
+    for (const contact of contacts) {
+      if (contact.name === data.name) {
         Notify.warning(`${contact.name} is already in contact`);
-        resetForm();
+        reset();
         return;
       }
     }
 
-    this.props.onAddContact({
+    onAddContact({
       id: shortid.generate(),
-      name: values.name,
-      number: values.number,
+      name: data.name,
+      number: data.number,
     });
-    resetForm();
+    reset();
   };
 
-  render() {
-    return (
-      <Formik initialValues={initialValues} onSubmit={this.handleSubmit}>
-        <PhoneBookForm>
-          <label>
-            <span>Name</span>
-            <ErrorMessage name="name" component={Message} />
-            <Field type="text" name="name" validate={validateName} />
-          </label>
+  return (
+    <PhoneBookForm onSubmit={handleSubmit(onSubmit)}>
+      <label>
+        <span>Name</span>
+        <input
+          type="text"
+          name="name"
+          {...register('name', {
+            required: true,
+            pattern:
+              /^[a-zA-Za-яА-Я]+(([' -][a-zA-Za-яА-Я ])?[a-zA-Za-яА-Я]*)*$/i,
+          })}
+        />
+        {errors.name && (
+          <Message>
+            Name may contain only letters, apostrophe, dash and spaces.
+          </Message>
+        )}
+      </label>
 
-          <label>
-            <span>Number</span>
-            <ErrorMessage name="number" component={Message} />
-            <Field type="tel" name="number" validate={validateNumber} />
-          </label>
+      <label>
+        <span>Number</span>
+        <input
+          type="tel"
+          name="number"
+          {...register('number', {
+            required: true,
+            pattern:
+              /\+?\d{1,4}?[-.\s]?\(?\d{1,3}?\)?[-.\s]?\d{1,4}[-.\s]?\d{1,4}[-.\s]?\d{1,9}/i,
+          })}
+        />
+        {errors.number && (
+          <Message>
+            Phone number must be digits and can contain spaces, dashes,
+            parentheses and can start with +
+          </Message>
+        )}
+      </label>
 
-          <AddButton type="submit">Add contact</AddButton>
-        </PhoneBookForm>
-      </Formik>
-    );
-  }
-}
+      <AddButton type="submit">Add contact</AddButton>
+    </PhoneBookForm>
+  );
+};
 
 ContactForm.propTypes = {
   contacts: PropTypes.arrayOf(
